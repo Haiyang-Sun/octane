@@ -285,6 +285,63 @@ BenchmarkSuite.prototype.NotifyError = function(error) {
 }
 
 
+BenchmarkSuite.prototype.RunEstimate = function(benchmark, data) {
+  /*
+   * Jalangi end callback
+   */
+  var cleanJalangi = undefined;
+  try {
+    if(J$){
+      if(J$.analysis && J$.analysis["endExecution"]){
+        cleanJalangi = function(){return J$.analysis.endExecution();};
+      }
+    }
+  }catch(e){ /* not in Jalangi */}
+  /*
+   * NodeProf cleanup
+   */
+  var cleanNodeProf = undefined;
+  try {
+    nodeprofInstrument = Java.type("ch.usi.inf.nodeprof.NodeProfInstrument");
+    cleanNodeProf = nodeprofInstrument.cleanAnalysis;
+  }catch(e) { /* not in NodeProf */}
+  /*
+   * clean analysis
+   */
+  var cleanBenchmark = function (){
+    if(cleanJalangi)
+      cleanJalangi();
+    if(cleanNodeProf)
+      cleanNodeProf();
+  }
+  var AutoMeasure = function MeasureVar(data) {
+    var elapsed = 0.0;
+    var start = new Date();
+    for (var n = 0; n < data.step; n++) {
+      benchmark.run();
+    }
+    elapsed = new Date() - start;
+    /*
+     * avoid memory leak from the analysis
+     */
+    cleanBenchmark();
+    data.add(elapsed);
+  };
+  if(data == null){
+    var SmartQueue = require("./smartqueue.js");
+    data = new SmartQueue();
+  }
+  AutoMeasure(data);
+  if(!data.check()){
+    return data;
+  }else {
+    var usec = data.getAvg();
+    var rms = (benchmark.rmsResult != null) ? benchmark.rmsResult() : 0;
+    this.NotifyStep(new BenchmarkResult(benchmark, usec, rms));
+    return null;
+  }
+}
+
 // Runs a single benchmark for at least a second and computes the
 // average time it takes to run a single iteration.
 BenchmarkSuite.prototype.RunSingleBenchmark = function(benchmark, data) {
@@ -366,7 +423,8 @@ BenchmarkSuite.prototype.RunStep = function(runner) {
 
   function RunNextBenchmark() {
     try {
-      data = suite.RunSingleBenchmark(suite.benchmarks[index], data);
+      //data = suite.RunSingleBenchmark(suite.benchmarks[index], data);
+      data = suite.RunEstimate(suite.benchmarks[index], data);
     } catch (e) {
       suite.NotifyError(e);
       return null;
@@ -387,4 +445,63 @@ BenchmarkSuite.prototype.RunStep = function(runner) {
 
   // Start out running the setup.
   return RunNextSetup();
+}
+
+var print = console.log;
+function PrintResult(name, result) {
+  print(name + ': ' + result);
+}
+
+
+function PrintError(name, error) {
+  print(error.stack);
+  PrintResult(name, error);
+}
+
+
+function PrintScore(score) {
+  print('----');
+  print('Score (version ' + BenchmarkSuite.version + '): ' + score);
+}
+
+function patchLoad() {
+  var g = this || global;
+  var load = g.load || require;
+  function loadSeek(file, paths) {
+    var paths = ['', 'lib/js-benchmarks/', '../js-benchmarks/', '../../js-benchmarks/'];
+    var error;
+    for (var i = 0; i < paths.length; i++) {
+      try {
+        return load(paths[i] + file);
+      } catch (e) {
+        if (!error) error = e;
+      }
+    }
+    throw error;
+  }
+  if (load != loadSeek) {
+    g.load = loadSeek;
+    if (!g.BenchmarkSuite) {
+      g.BenchmarkSuite = BenchmarkSuite;
+      g.Benchmark = Benchmark;
+    }
+  }
+}
+function main(args) {
+  patchLoad();
+  for (var i = 1; i < args.length; i++) {
+    load(args[i]);
+  }
+
+  if (BenchmarkSuite.suites.length > 0) {
+    return BenchmarkSuite.RunSuites({ NotifyResult: PrintResult,
+                         NotifyError: PrintError,
+                         NotifyScore: PrintScore });
+  }
+}
+
+var Arguments = this.arguments || (typeof process == 'object' && process.argv.slice(1));
+
+if (Arguments && Array.isArray(Arguments)) {
+  main(Arguments);
 }
