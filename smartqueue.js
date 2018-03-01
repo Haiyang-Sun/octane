@@ -1,15 +1,17 @@
-debug=false;
+debug=true;
 print= console.log;
 
 function SmartQueue(capacity, ratio, initStep){
   this.capacity = capacity || 20;
-  this.ratio = ratio || 0.10;
+  this.ratio = ratio || 0.03;
   this.step = initStep || 1;
   this.add = _add;
   this.check = _check;
   this.updateStep = _updateStep;
   this.getAvg = _getAvg;
   this.data={num:0, sum:0, sumS:0, q:[]};
+  this.warmupPhase = true;
+  this.tail = undefined;
 }
 
 
@@ -32,15 +34,31 @@ function _updateStep(newStep){
 
 function _add(elapse){
   if(debug)
-    print("[smartq] adding "+elapse+" step: "+this.step);
+    print("[smartq] adding "+elapse+" step: "+this.step + " samples "+this.data.q);
   if(elapse < 1000){
     this.updateStep(this.step*2);
     return;
   }
   var tmp = elapse;
+  if(!this.tail) {
+    this.tail = tmp;
+    return false;
+  }
+  if(this.warmupPhase) {
+    var tailIncrease = tmp > this.tail;
+    if(tailIncrease){
+      if(debug) {
+        print("[smartq] start to collect data");
+      }
+      this.warmupPhase = false;
+    }
+  }
+  this.tail = tmp;
+  if(this.warmupPhase)
+    return false;
+  this.data.q.push(tmp);
   this.data.sum+=tmp;
   this.data.sumS += tmp*tmp;
-  this.data.q.push(tmp);
   this.data.num++;
   if(this.data.num > this.capacity){
     this.data.num--;
@@ -48,7 +66,8 @@ function _add(elapse){
     this.data.sum -= head;
     this.data.sumS -= head * head;
   }
-  print("[smartq] average of recent "+(this.data.num * this.step)+" runs (step "+this.step+"): "+this.getAvg()/1000 + " ms");
+  if(debug)
+    print("[smartq] average of recent "+(this.data.num * this.step)+" runs (step "+this.step+"): "+this.getAvg()/1000 + " ms");
 }
 
 function _check(){
@@ -71,7 +90,7 @@ function _check(){
       return true;
     }else {
       if(debug)
-        print("[smartq] not steady yet "+delta1 +" "+delta2);
+        print("[smartq] not steady "+delta2 + " > "+this.ratio);
     }
   }
   return false;
