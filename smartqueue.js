@@ -1,4 +1,4 @@
-debug=true;
+debug=false;
 print= console.log;
 
 function SmartQueue(capacity, ratio, initStep){
