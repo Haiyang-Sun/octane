@@ -1,10 +1,35 @@
 debug=false;
 print= console.log;
 
+//probablilty 99% (two-sides)
+student_t_table = {
+    10:3.169,
+    15:2.947,
+    20:2.845,
+    30:2.750,
+    50:2.678,
+    100:2.626,
+    1000:2.576
+}
 function SmartQueue(capacity, ratio, initStep){
   this.capacity = capacity || 20;
-  this.ratio = ratio || 0.03;
+  this.ratio = ratio || 0.05;
   this.step = initStep || 1;
+  this.tDistri = student_t_table[this.capacity];
+  if(!this.tDistri) {
+    if(capacity > 50) {
+      this.tDistri = student_t_table[50];
+    } else if(capacity > 30) {
+      this.tDistri = student_t_table[30];
+    } else if(capacity > 20) {
+      this.tDistri = student_t_table[20];
+    }else {
+      this.tDistri = student_t_table[10];
+    }
+  }
+  if(debug) {
+    print("[smartq] creating smart-queue "+this.capacity+" "+this.ratio+" "+this.step+" "+this.tDistri);
+  }
   this.add = _add;
   this.check = _check;
   this.updateStep = _updateStep;
@@ -76,14 +101,14 @@ function _check(){
      * the variance for the whole set, not used
      */
     var variance = Math.sqrt(this.data.sumS/(this.data.num-1) - (this.data.sum/this.data.num)*(this.data.sum/(this.data.num-1)));
-    var delta1 = 2.845 * variance / Math.sqrt(this.data.num) / (this.data.sum / this.data.num); //student-t n = 20
+    var delta1 = this.tDistri * variance / Math.sqrt(this.data.num) / (this.data.sum / this.data.num); //student-t n = 20
 
     /** the variance excluding the slowest run, caused probably by e.g., gc*/
     var gc = this.data.q.reduce(function(a, b) {
       return Math.max(a, b);
     });
     var variance_gc = Math.sqrt((this.data.sumS-gc*gc)/(this.data.num-2) - ((this.data.sum-gc)/(this.data.num-1))*((this.data.sum-gc)/(this.data.num-2)));
-    var delta2 = 2.861 * variance_gc / Math.sqrt(this.data.num-1) / ((this.data.sum - gc) / (this.data.num - 1)); //student-t n = 19
+    var delta2 = this.tDistri * variance_gc / Math.sqrt(this.data.num-1) / ((this.data.sum - gc) / (this.data.num - 1)); //student-t n = 19
     if(delta2 < this.ratio) {
       if(debug)
         print("[smartq] steady: with gc "+delta1+ ", without gc "+delta2);

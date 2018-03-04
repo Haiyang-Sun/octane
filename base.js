@@ -37,6 +37,7 @@ performance.now = (function() {
          Date.now;
 })();
 
+var queueSetting="20:0.05";
 // Simple framework for running the benchmark suites and
 // computing a score based on the timing measurements.
 
@@ -329,7 +330,12 @@ BenchmarkSuite.prototype.RunEstimate = function(benchmark, data) {
   };
   if(data == null){
     var SmartQueue = require("./smartqueue.js");
-    data = new SmartQueue();
+    var qset = queueSetting.split(":");
+    if(qset.length == 2 && !isNaN(qset[0])  && !isNaN(qset[1])) {
+        data = new SmartQueue(qset[0], qset[1]);
+    }else {
+        data = new SmartQueue();
+    }
   }
   AutoMeasure(data);
   if(!data.check()){
@@ -489,8 +495,16 @@ function patchLoad() {
 }
 function main(args) {
   patchLoad();
+  var queueOption = false;
   for (var i = 1; i < args.length; i++) {
-    load(args[i]);
+    if(args[i] == "--setting") {
+        queueOption = true;
+    }else if(queueOption) {
+        queueSetting = args[i];
+        queueOption = false;
+    }else {
+        load(args[i]);
+    }
   }
 
   if (BenchmarkSuite.suites.length > 0) {
