@@ -347,7 +347,7 @@ BenchmarkSuite.prototype.RunEstimate = function(benchmark, data) {
     return data;
   }else {
     var usec = data.getAvg();
-    console.log("Performance:", usec, "ms / run");
+    console.log("Performance:", usec, "us / run");
     var rms = (benchmark.rmsResult != null) ? benchmark.rmsResult() : 0;
     this.NotifyStep(new BenchmarkResult(benchmark, usec, rms));
     return null;
