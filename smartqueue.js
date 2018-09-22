@@ -116,8 +116,8 @@ function _check(){
     /**
      * the variance for the whole set, not used
      */
-    //var variance = Math.sqrt(this.data.sumS/(this.data.num-1) - (this.data.sum/this.data.num)*(this.data.sum/(this.data.num-1)));
-    //var delta1 = this.tDistri * variance / Math.sqrt(this.data.num) / (this.data.sum / this.data.num); //student-t n = 20
+    var variance = Math.sqrt(this.data.sumS/(this.data.num-1) - (this.data.sum/this.data.num)*(this.data.sum/(this.data.num-1)));
+    var delta1 = this.tDistri * variance / Math.sqrt(this.data.num) / (this.data.sum / this.data.num); //student-t n = 20
 
     /** the variance excluding the slowest run, caused probably by e.g., gc*/
     var gc = this.data.q.reduce(function(a, b) {
