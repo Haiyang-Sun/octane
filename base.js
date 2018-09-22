@@ -1,3 +1,4 @@
+//DO NOT INSTRUMENT
 // Copyright 2013 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -37,7 +38,8 @@ performance.now = (function() {
          Date.now;
 })();
 
-var queueSetting="20:0.05";
+var queueSetting="20:0.10";
+var queueDebug = false;
 // Simple framework for running the benchmark suites and
 // computing a score based on the timing measurements.
 
@@ -336,12 +338,16 @@ BenchmarkSuite.prototype.RunEstimate = function(benchmark, data) {
     }else {
         data = new SmartQueue();
     }
+    if(queueDebug) {
+      data.debug = true;
+    }
   }
   AutoMeasure(data);
   if(!data.check()){
     return data;
   }else {
     var usec = data.getAvg();
+    console.log("Performance:", usec, "ms / run");
     var rms = (benchmark.rmsResult != null) ? benchmark.rmsResult() : 0;
     this.NotifyStep(new BenchmarkResult(benchmark, usec, rms));
     return null;
@@ -499,6 +505,8 @@ function main(args) {
   for (var i = 1; i < args.length; i++) {
     if(args[i] == "--setting") {
         queueOption = true;
+    } else if(args[i] == "--debug") {
+      queueDebug = true;
     }else if(queueOption) {
         queueSetting = args[i];
         queueOption = false;
