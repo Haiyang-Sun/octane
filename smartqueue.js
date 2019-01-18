@@ -1,4 +1,6 @@
-debug=false;
+// DO NOT INSTRUMENT
+
+debug=true;
 print= console.log;
 
 //probablilty 99% (two-sides)

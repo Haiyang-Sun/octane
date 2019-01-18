@@ -1,3 +1,4 @@
+// DO NOT INSTRUMENT
 // Copyright 2013 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -37,7 +38,7 @@ performance.now = (function() {
          Date.now;
 })();
 
-var queueSetting="20:0.05";
+var queueSetting="30:0.03";
 // Simple framework for running the benchmark suites and
 // computing a score based on the timing measurements.
 
