@@ -507,6 +507,9 @@ function main(args) {
     }else if(args[i] == "--maxTime") {
         options.maxTime = true;
         options.option = true;
+    }else if(args[i] == "--groupMinTime") {
+        options.groupMinTime = true;
+        options.option = true;
     }else if(args[i] == "--maxRuns") {
         options.maxRuns = true;
         options.option = true;
@@ -519,6 +522,8 @@ function main(args) {
             runSettingOption.windowSize= parseInt(args[i]);
         }else if(options.varBar){
             runSettingOption.varBar= parseFloat(args[i]);
+        }else if(options.groupMinTime){
+            runSettingOption.groupMinTime= parseFloat(args[i]);
         }
         options = {};
     }else {
