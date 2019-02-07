@@ -13,17 +13,22 @@ student_t_table = {
     100:2.626,
     1000:2.576
 }
-function SmartQueue(capacity, ratio, initStep){
-  this.capacity = capacity || 20;
-  this.ratio = ratio || 0.05;
-  this.step = initStep || 1;
+function SmartQueue(option) {
+  this.capacity = option.windowSize || 20;
+  this.ratio = option.varBar || 0.03;
+  this.maxTime = option.maxTime;
+  this.maxRuns = option.maxRuns;
+  this.groupMinTime = option.groupMinTime || 200;
+  this.totalExecutionTime = 0;
+  this.totalRuns = 0;
+  this.step = option.initStep || 1;
   this.tDistri = student_t_table[this.capacity];
   if(!this.tDistri) {
-    if(capacity > 50) {
+    if(this.capacity > 50) {
       this.tDistri = student_t_table[50];
-    } else if(capacity > 30) {
+    } else if(this.capacity > 30) {
       this.tDistri = student_t_table[30];
-    } else if(capacity > 20) {
+    } else if(this.capacity > 20) {
       this.tDistri = student_t_table[20];
     }else {
       this.tDistri = student_t_table[10];
@@ -43,6 +48,13 @@ function SmartQueue(capacity, ratio, initStep){
 
 
 function _getAvg(){
+  // stopped before warmup finishes
+  if(this.data.q.length == 0) {
+    if(debug) {
+      print("[smartq] stop before warmup finishes "+this.totalExecutionTime +" ms / "+this.totalRuns +" runs");
+    }
+    return this.totalExecutionTime / this.totalRuns * 1000;
+  }
   var gc = this.data.q.reduce(function(a, b) {
     return Math.max(a, b);
   });
@@ -60,6 +72,8 @@ function _updateStep(newStep){
 }
 
 function _add(elapse){
+  this.totalExecutionTime+=elapse;
+  this.totalRuns+=this.step;
   if(debug)
     print("[smartq] adding "+elapse+" step: "+this.step + " samples "+this.data.q);
   if(elapse < 1000){
@@ -98,7 +112,11 @@ function _add(elapse){
 }
 
 function _check(){
-  if(this.data.num == this.capacity){
+  if(this.maxRuns && this.totalRuns >= this.maxRuns) {
+      return true;
+  }else if(this.maxTime && this.totalExecutionTime >= this.maxTime) {
+      return true;
+  }else if(this.data.num == this.capacity){
     /**
      * the variance for the whole set, not used
      */
@@ -112,8 +130,8 @@ function _check(){
     var variance_gc = Math.sqrt((this.data.sumS-gc*gc)/(this.data.num-2) - ((this.data.sum-gc)/(this.data.num-1))*((this.data.sum-gc)/(this.data.num-2)));
     var delta2 = this.tDistri * variance_gc / Math.sqrt(this.data.num-1) / ((this.data.sum - gc) / (this.data.num - 1)); //student-t n = 19
     if(delta2 < this.ratio) {
-      if(debug)
-        print("[smartq] steady: with gc "+delta1+ ", without gc "+delta2);
+      //if(debug)
+      print("[smartq] STEADY average time: " + (this.getAvg() / 1000) +" ms, variance: ± " + (delta2*100) + "% totalExecutionTime: "+this.totalExecutionTime+" totalRuns: "+this.totalRuns); //+ ", without gc "+delta2);
       return true;
     }else {
       if(debug)

@@ -38,7 +38,12 @@ performance.now = (function() {
          Date.now;
 })();
 
-var queueSetting="30:0.03";
+let runSettingOption = {
+    maxRuns: undefined,
+    maxTime: undefined,
+    windowSize: undefined,
+    varBar: undefined,
+}
 // Simple framework for running the benchmark suites and
 // computing a score based on the timing measurements.
 
@@ -331,12 +336,7 @@ BenchmarkSuite.prototype.RunEstimate = function(benchmark, data) {
   };
   if(data == null){
     var SmartQueue = require("./smartqueue.js");
-    var qset = queueSetting.split(":");
-    if(qset.length == 2 && !isNaN(qset[0])  && !isNaN(qset[1])) {
-        data = new SmartQueue(qset[0], qset[1]);
-    }else {
-        data = new SmartQueue();
-    }
+    data = new SmartQueue(runSettingOption);
   }
   AutoMeasure(data);
   if(!data.check()){
@@ -496,13 +496,31 @@ function patchLoad() {
 }
 function main(args) {
   patchLoad();
-  var queueOption = false;
+  let options = {};
   for (var i = 1; i < args.length; i++) {
-    if(args[i] == "--setting") {
-        queueOption = true;
-    }else if(queueOption) {
-        queueSetting = args[i];
-        queueOption = false;
+    if(args[i] == "--windowSize") {
+        options.windowSize = true;
+        options.option = true;
+    }else if(args[i] == "--varBar") {
+        options.varBar= true;
+        options.option = true;
+    }else if(args[i] == "--maxTime") {
+        options.maxTime = true;
+        options.option = true;
+    }else if(args[i] == "--maxRuns") {
+        options.maxRuns = true;
+        options.option = true;
+    }else if(options.option) {
+        if(options.maxTime){
+            runSettingOption.maxTime = parseInt(args[i]);
+        }else if(options.maxRuns){
+            runSettingOption.maxRuns = parseInt(args[i]);
+        }else if(options.windowSize){
+            runSettingOption.windowSize= parseInt(args[i]);
+        }else if(options.varBar){
+            runSettingOption.varBar= parseFloat(args[i]);
+        }
+        options = {};
     }else {
         load(args[i]);
     }
