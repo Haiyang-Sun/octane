@@ -33,6 +33,7 @@
 // also has to deal with a lot of changes to the large tree object
 // graph.
 
+var performance = {now: ()=>{return new Date();}};
 var Splay = new BenchmarkSuite('Splay', [81491, 2739514], [
   new Benchmark("Splay", true, false, 1400,
     SplayRun, SplaySetup, SplayTearDown, SplayRMS)
